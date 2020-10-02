@@ -1,0 +1,114 @@
+type Org @key(fields: "id") {
+  id: String!
+  name: String!
+  members: [OrgMember!]!
+  projects: [Project!]!
+  currentUserMember: OrgMember!
+  billingEnabled: Boolean!
+}
+
+type ApiKey {
+  orgId: String!
+  projectId: String!
+  orgName: String!
+  projectName: String!
+  key: String!
+  domains: [String!]!
+}
+
+type User {
+  uid: String!
+  email: String!
+  name: String
+  orgs: [Org]
+  activeOrg: Org
+  activeProject: Project
+}
+
+enum OrgMemberRole {
+  viewer
+  editor
+  owner
+  agent
+}
+
+type OrgMember {
+  orgId: String!
+  uid: String!
+  role: OrgMemberRole!
+  user: User!
+}
+
+type Project {
+  id: String!
+  orgId: String!
+  name: String!
+  org: Org
+}
+
+type OrgMemberInvite {
+  id: String!
+  email: String!
+  orgId: String!
+  orgName: String!
+  senderName: String!
+  senderEmail: String!
+  timestamp: String!
+  role: OrgMemberRole!
+}
+
+type BavardAuthToken {
+  token: String!
+}
+
+extend type Query {
+  currentUser: User!
+  orgs(id: String): [Org]!
+  projects(orgId: String!): [Project]!
+  orgMemberInvites(orgId: String!): [OrgMemberInvite!]!
+  orgMemberInvite(id: String!): OrgMemberInvite
+  orgMember(orgId: String!, userId: String!): OrgMember
+  orgMemberByProjectId(projectId: String!, userId: String!): OrgMember
+
+  apiKey(projectId: String!): ApiKey
+  apiKeys(orgId: String!): [ApiKey!]!
+  exchangeFirebaseToken(firebaseToken: String!): BavardAuthToken!
+  exchangeApiKey(apiKey: String!): BavardAuthToken!
+}
+
+extend type Mutation {
+  createOrg(name: String!): Org!
+  deleteOrg(orgId: String!): Org!
+
+  createProject(orgId: String!, name: String!): Project!
+  deleteProject(projectId: String!): Project!
+
+  inviteOrgMember(
+    orgId: String!
+    recipientEmail: String!
+    role: OrgMemberRole!
+  ): OrgMemberInvite!
+  acceptOrgMemberInvite(inviteId: String!): OrgMemberInvite!
+  deleteOrgMemberInvite(orgId: String!, inviteId: String!): Boolean!
+  removeOrgMember(orgId: String!, userId: String!): OrgMember!
+  changeOrgMemberRole(
+    orgId: String!
+    role: OrgMemberRole!
+    userId: String!
+  ): OrgMember!
+
+  updateUserActiveOrg(orgId: String!, projectId: String): User!
+
+  # API keys
+  generateApiKey(projectId: String!, key: String): ApiKey!
+  deleteApiKey(projectId: String!): ApiKey!
+
+  # Billing
+  enableBilling(
+    orgId: String!
+    stripeToken: String!
+    billingEmail: String!
+  ): Boolean!
+  disableBilling(orgId: String!): Boolean!
+  updateAllowedDomains(projectId: String!, domains: [String!]!): ApiKey!
+}
